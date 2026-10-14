@@ -1,15 +1,17 @@
 [build]
   publish = "."
-  command = ""
+  command = "# no build"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["netlify/functions/**"]
 
 [[redirects]]
   from = "/api/trpc/*"
   to = "/.netlify/functions/trpc/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"

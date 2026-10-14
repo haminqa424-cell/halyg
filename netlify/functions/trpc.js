@@ -323,14 +323,17 @@ exports.handler = async (event) => {
     };
   }
 
-  const rawPath = event.path || '';
-  const trpcBase = '/api/trpc/';
-  const idx = rawPath.indexOf(trpcBase);
-  if (idx === -1) {
-    return { statusCode: 404, body: JSON.stringify({ error: 'not found' }) };
+  const rawPath = event.path || event.rawUrl || '';
+  let procsStr = '';
+  if (rawPath.includes('/api/trpc/')) {
+    procsStr = rawPath.split('/api/trpc/')[1];
+  } else if (rawPath.includes('/.netlify/functions/trpc/')) {
+    procsStr = rawPath.split('/.netlify/functions/trpc/')[1];
+  } else {
+    const segments = rawPath.split('/').filter(Boolean);
+    procsStr = segments[segments.length - 1] || '';
   }
-
-  const procsStr = rawPath.slice(idx + trpcBase.length);
+  if (procsStr.includes('?')) procsStr = procsStr.split('?')[0];
   const procs = procsStr.split(',').filter(Boolean);
   if (!procs.length) {
     return { statusCode: 400, body: JSON.stringify([]) };
