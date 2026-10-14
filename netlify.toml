@@ -2,9 +2,13 @@
   publish = "."
   command = ""
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 [[redirects]]
-  from = "/api/*"
-  to = "/api/:splat"
+  from = "/api/trpc/*"
+  to = "/.netlify/functions/trpc/:splat"
   status = 200
 
 [[redirects]]
