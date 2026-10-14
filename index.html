@@ -8,10 +8,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/index-DGWWbn-x.css" />
+  <link rel="stylesheet" href="./assets/index-DGWWbn-x.css" />
+  <script type="text/javascript">
+    (function(l) {
+      if (l.search[1] === '/') {
+        var decoded = l.search.slice(1).split('&').map(function(s) {
+          return s.replace(/~and~/g, '&')
+        }).join('?');
+        window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
+      }
+    }(window.location))
+  </script>
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="/assets/index-D-1BwIyM.js"></script>
+  <script type="module" src="./assets/index-D-1BwIyM.js"></script>
 </body>
 </html>
