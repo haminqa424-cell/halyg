@@ -5,7 +5,7 @@ const crypto = require('crypto');
 
 const ROOT = __dirname;
 const PORT = process.env.PORT || 8080;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin1234';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '992812';
 
 // ─── In-memory stores ───────────────────────────────────────────────
 const applications = {}; // nationalId -> app object
@@ -261,7 +261,7 @@ async function executeProcedure(name, input, req, isAdmin) {
     }
 
     case 'admin.checkSession': {
-      return { authenticated: isAdmin };
+      return { isAdmin: isAdmin, authenticated: isAdmin };
     }
 
     case 'admin.logout': {
